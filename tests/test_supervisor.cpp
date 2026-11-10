@@ -788,16 +788,28 @@ TEST_F(MonitorTest, reapChildren_UnknownChild_ReapedAndIgnored)
     if (stranger == 0) {
         _exit(0);
     }
-    sleepMs(200);
+    ASSERT_GT(stranger, 0);
+
+    siginfo_t childInfo = {};
+    int waitResult;
+    do {
+        waitResult = waitid(P_PID, static_cast<id_t>(stranger), &childInfo, WEXITED | WNOWAIT);
+    } while ((waitResult == -1) && (errno == EINTR));
+    ASSERT_EQ(waitResult, 0) << std::strerror(errno);
+    ASSERT_EQ(childInfo.si_pid, stranger);
+
     reapChildren(&gCtx, &gTable);
     EXPECT_EQ(countZombieChildren(), 0);
+    errno = 0;
     EXPECT_EQ(waitpid(stranger, nullptr, WNOHANG), -1);  /* already reaped */
+    EXPECT_EQ(errno, ECHILD);
 }
 
 TEST_F(MonitorTest, reapChildren_DuringShutdown_MarksStopped)
 {
     Service *s = addService("x", "/bin/sleep 30");
     ASSERT_EQ(launchService(s), SUP_OK);
+    sleepMs(100);
     gCtx.stopping = 1;
     kill(s->pid, SIGTERM);
     ASSERT_EQ(pumpUntil(s, SVC_STOPPED, 3000), 1);

@@ -28,6 +28,20 @@ static void onTerm(int sig)
     g_stop = 1;
 }
 
+#ifdef LEAK_DEMO
+/* Valgrind demo only (make valgrind): 64 bytes allocated in the CHILD
+ * process (the service) and never freed -> "definitely lost" under the
+ * child's PID. Not compiled into the normal build. */
+static void childLeakDemo(const char *name)
+{
+    char *leak = (char *)malloc(64U);
+
+    if (leak != NULL) {
+        (void)snprintf(leak, 64U, "child leak: %s", name);
+    }
+}
+#endif
+
 static int hasFlag(int argc, char *argv[], const char *name)
 {
     int found = 0;
@@ -79,6 +93,9 @@ int main(int argc, char *argv[])
     }
     (void)printf("[%s] started (pid %d)\n", name, (int)getpid());
     (void)fflush(stdout);
+#ifdef LEAK_DEMO
+    childLeakDemo(name);
+#endif
 
     while (g_stop == 0) {
         if ((hbFd >= 0) && ((hangAfter < 0L) || (seconds < hangAfter))) {

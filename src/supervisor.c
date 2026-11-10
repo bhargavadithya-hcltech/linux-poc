@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -254,6 +255,21 @@ void shutdownSupervisor(SupervisorContext *ctx, ProcessTable *table)
 }
 
 /* ----------------------------------------------------- program flow */
+#ifdef LEAK_DEMO
+/* Valgrind demo only (make valgrind): 128 bytes allocated in the PARENT
+ * process (the supervisor) and never freed -> "definitely lost" under the
+ * parent's PID. Not compiled into the normal build. */
+static void parentLeakDemo(void)
+{
+    char *leak = (char *)malloc(128U);
+
+    if (leak != NULL) {
+        (void)snprintf(leak, 128U, "%s", "parent (supervisor) leak");
+    }
+    /* cppcheck-suppress memleak ; intentional leak for the Valgrind demo */
+}
+#endif
+
 int runSupervisor(int argc, char *argv[])
 {
     int exitCode = 0;
@@ -298,6 +314,9 @@ int runSupervisor(int argc, char *argv[])
             (void)writePidFile(gCtx.pidPath);
             logMsg(LOG_INFO, NULL, "I001 supervisor started (%s mode)", (gCtx.daemonMode != 0) ? "daemon" : "foreground");
             (void)launchAll(gStartOrder, gStartCount);
+#ifdef LEAK_DEMO
+            parentLeakDemo();
+#endif
             runEventLoop(&gCtx, &gTable);
             shutdownSupervisor(&gCtx, &gTable);
         }
