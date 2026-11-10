@@ -121,7 +121,6 @@ int parseServiceLine(const char *line, ServiceConfig *cfg)
     int status = SUP_OK;
     char buf[LINE_SIZE];
     char *eq;
-    char *value;
     long number = 0;
 
     if ((line == NULL) || (cfg == NULL) || (strlen(line) >= sizeof(buf))) {
@@ -133,6 +132,7 @@ int parseServiceLine(const char *line, ServiceConfig *cfg)
             status = ERR_CONFIG_ENTRY;
         } else {
             const char *key;
+            char *value;
 
             *eq = '\0';
             key = trim(buf);

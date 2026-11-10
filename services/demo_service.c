@@ -93,7 +93,6 @@ int main(int argc, char *argv[])
     }
     (void)printf("[%s] started (pid %d)\n", name, (int)getpid());
     (void)fflush(stdout);
-
 #ifdef LEAK_DEMO
     childLeakDemo(name);
 #endif
